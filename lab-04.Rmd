@@ -20,12 +20,16 @@ laquinta <- laquinta
 
 ### Exercise 1
 
+Below we have the dimensions of the Denny's dataset:
+
 ```{r summary-dennys}
 message("The Denny's dataset contains ", nrow(dennys), " rows and ", ncol(dennys), " columns")
 ```
 
 
 ### Exercise 2
+
+And here we have the dimensions of the La Quinta dataset:
 
 ```{r summary-laquinta}
 message("The La Quinta dataset contains ", nrow(laquinta), " rows and ", ncol(laquinta), " columns")
@@ -77,7 +81,7 @@ laquinta_outside_US_count <- laquinta %>%
   message("There are ", laquinta_outside_US_count, " La Quinta locations outside the US")
 ```
 
-And a little extra code lets us figure out where those locations are
+And a little extra code gives us more information about those locations:
 
 ```{r laquinta-outside-US-locations}
 laquinta_outside_US <- laquinta %>%
@@ -90,12 +94,13 @@ laquinta_outside_US
 ### Exercise 8
 
 After some Googling, I'm able to figure out which countries these locations are in based on their country codes:
-Codes AG,  QR, CH, NL, VE,  PU, and SL are in Mexico
-Code ANT is in Colombia
-Codes ON and BC are in Canada
-Code FM in is Honduras
 
-We can use this knowledge to add a country code to the La Quinta data as well:
+Codes AG,  QR, CH, NL, VE,  PU, and SL are in Mexico;
+Code ANT is in Colombia;
+Codes ON and BC are in Canada;
+and Code FM in is Honduras.
+
+We can use this knowledge to add a country code to the La Quinta data as well, and then filter the data so that we're only working with observations from within the US:
 
 ```{r add-country-variable-to-la-quinta}
 laquinta <- laquinta %>%
@@ -111,4 +116,102 @@ laquinta <- laquinta %>%
   filter(country == "United States")
 ```
 
+### Exercise 9
+
+It looks like California has the most Denny's locations (with 403), while Delaware has the fewest (just 1)
+
+```{r dennys-counts-by-state}
+dennys %>%
+  count(state) %>%
+  arrange(desc(n)) %>%
+  print(n = 100)
+```
+
+For La Quinta, it looks like Texas has the most locations (237) and Maine has the fewest (1)
+
+```{r laquinta-counts-by-state}
+laquinta %>%
+  count(state) %>%
+  arrange(desc(n)) %>%
+  print(n=100)
+```
+
+### Exercise 10
+
+To figure out how many locations of Denny's and La Quinta are in each state per 1000 miles, we have to combine the counts of each location per state with the `states` data frame.
+We can then create a new variable within each merged data frame called "LocationsPerArea" that divides the location count per state by (area/1000).
+Finally, we can sort each data frame in descending order by this new variable.
+
+Below, we can see that DC has the highest concentration of Denny's (29.2 per 1000 square miles), and Rhode Island has the highest concentration of La Quinta (1.29 per 1000 square miles)
+
+```{r locations-per-thousand miles}
+dennys_joined <- dennys %>%
+  count(state) %>%
+  inner_join(states, by = c("state" = "abbreviation")) %>%
+  mutate(LocationsPerArea = n/(area/1000)) %>%
+  arrange(desc(LocationsPerArea))
+dennys_joined
+
+laquinta_joined <- laquinta %>%
+  count(state) %>%
+  inner_join(states, by = c("state" = "abbreviation")) %>%
+  mutate(LocationsPerArea = n/(area/1000)) %>%
+  arrange(desc(LocationsPerArea))
+laquinta_joined
+```
+### Exercise 11
+
+To compare the locations of Denny's and La Quinta, we need to combine the two datasets together.
+The code to do that is given below:
+
+```{r merge-dn-lq}
+dennys <- dennys %>%
+  mutate(establishment = "Denny's")
+laquinta <- laquinta %>%
+  mutate(establishment = "La Quinta")
+
+dn_lq <- bind_rows(dennys, laquinta)
+```
+
+And now that the datasets are joined, we can make a scatterplot of latitude vs. longitude for the two establishments.
+This should allow us to literally see where they are in relation to one another:
+
+```{r location-scatterplot-US}
+ggplot(dn_lq, mapping = aes(x = longitude,
+                            y = latitude,
+                            color = establishment)) +
+  geom_point()
+```
+
+Let's filter this to look just at the data for North Carolina:
+
+```{r location-scatterplot-NC}
+dn_lq %>%
+  filter(state == "NC") %>%
+ggplot(mapping = aes(x = longitude,
+                     y = latitude,
+                     color = establishment)) +
+  geom_point(alpha = 0.7)
+```
+
+I'd say this provides some support for Mitch Hedberg's joke.
+Not every Denny's is right next to a La Quinta, but there are quite a few with a La Quinta very close by.
+
+### Exercise 12
+
+Now let's do the same analysis for Texas:
+
+```{r location-scatterplot-TX}
+dn_lq %>%
+  filter(state == "TX") %>%
+ggplot(mapping = aes(x = longitude,
+                     y = latitude,
+                     color = establishment)) +
+  geom_point(alpha = 0.5)
+```
+This is a lot more visually striking.
+It looks like there are a few population centers in Texas, and those are rich with both Denny's and La Quintas.
+And even for those outside of the big clusters, the proximity is a little uncanny.
+
+Looks like Mitch was onto something!
 
